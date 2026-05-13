@@ -267,7 +267,7 @@ The CRUD tests run in a single chained describe block using `beforeAll` to creat
 
 | File | Tests | What is covered |
 |---|---|---|
-| `bookingClient.unit.spec.ts` | 5+ | BookingClient methods tested in isolation using Jest mocks — no real HTTP calls made |
+| `bookingClient.unit.spec.ts` | 8 | BookingClient methods tested in isolation using Jest mocks — no real HTTP calls made |
 
 Unit tests mock the `APIRequestContext` to verify that `BookingClient` constructs requests
 correctly (correct URLs, headers, token injection) without hitting the live API.
@@ -310,15 +310,15 @@ Push / PR / Schedule / Manual
 |---|---|
 | `push` | Every commit pushed to `main` |
 | `pull_request` | Every PR opened or updated against `main` |
-| `schedule` | Every day at **08:00 UTC** automatically |
+| `schedule` | Every day at **14:00 UTC** (16:00 CEST) automatically |
 | `workflow_dispatch` | On-demand manual run from the GitHub Actions tab |
 
 ### Jobs
 
 | Job | What it does |
 |---|---|
-| **API Integration Tests** | Runs all 12 API tests (auth, CRUD, negative) against the Restful Booker API |
-| **UI End-to-End Tests** | Runs all 11 UI tests (navigation, search, security details) against the MeDirect site |
+| **API Integration Tests** | Runs all 13 API tests (auth, CRUD, negative) against the Restful Booker API |
+| **UI End-to-End Tests** | Runs all 17 UI tests (navigation, search, security details) against the MeDirect site |
 | **Publish Allure Report** | Downloads both Allure reports and deploys them to GitHub Pages |
 | **Email Test Summary** | Parses results JSON and sends an HTML email with pass/fail counts |
 
@@ -394,35 +394,9 @@ test failure. To enable it, add the following three secrets under
 These items were considered but deliberately kept out of scope to avoid over-engineering the assessment solution. They represent natural next steps for a production framework:
 
 - **Tag-based test selection** — Add `@smoke` and `@regression` tags to enable selective CI runs (e.g. `--grep @smoke` for a quick sanity check on every PR, full regression nightly). Tags were omitted here to keep the test signatures clean for readability.
-- **Search debounce handling** — `EquitiesSearchPage.searchFor()` uses `waitForTimeout(1500)` to account for the site's search debounce. A more robust approach would intercept the outgoing search request via `page.waitForResponse()` and resolve when the response arrives.
-- **Parameterised UI tests** — The four security type tabs (Equities, Funds, ETFs, Bonds) could be driven by a data table to reduce repetition.
-- **Visual regression testing** — Screenshot comparisons for the locked fields and banner UI using Playwright's built-in `toHaveScreenshot()`.
-- **Retry on flake** — Enable `retries: 2` in CI to auto-retry transient network failures against the live test environments.
-- **Parallel UI test execution** — Enable cross-browser runs (Chromium, Firefox, WebKit) in CI to catch browser-specific rendering differences earlier.
+- **Search debounce handling** — `EquitiesSearchPage.searchFor()` uses `waitForTimeout(1500)` to account for the site's search debounce. A more robust approach would intercept the outgoing search request via `page.waitForResponse()` and resolve when the response arrives — eliminating the fixed wait and making tests faster and more reliable.
+- **API response schema validation** — Assert the shape of every API response (required fields, correct types) using a schema library such as Zod or JSON Schema. This catches contract-breaking changes that a status-code check alone would miss.
+- **Visual regression testing** — Screenshot comparisons for the locked fields and registration banner using Playwright's built-in `toHaveScreenshot()`, so any unintended UI change is caught automatically.
+- **Retry on flake** — Enable `retries: 2` in CI to auto-retry transient network failures against the live test environments without marking a test as failed on the first timeout.
+- **Cross-browser coverage** — Extend the UI suite to run against Firefox and WebKit in CI (in addition to Chromium) to catch browser-specific rendering or behaviour differences earlier in the pipeline.
 
----
-
-## Troubleshooting
-
-**`npx allure --version` gives an error**
-
-Allure CLI requires Java 8+. Install from [java.com](https://www.java.com/en/download/) and ensure `java` is on your PATH.
-
-**Tests fail with `Cannot find name 'process'`**
-
-Ensure `@types/node` is installed:
-```bash
-npm install --save-dev @types/node
-```
-
-**UI tests fail with timeout on search results**
-
-The MeDirect site applies a search debounce. If results don't load within the timeout, check your network connection — the page must be reachable at `https://www.medirect.com.mt`.
-
-**Allure report shows stale results from a previous run**
-
-Run `npm run clean` before re-running tests. All `*:allure` scripts do this automatically.
-
-**`Fixture { request } from beforeAll cannot be reused` error**
-
-The API tests use `playwrightRequest.newContext()` inside `beforeAll` instead of the `{ request }` fixture — this is intentional. Do not replace it with the fixture.
