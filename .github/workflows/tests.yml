@@ -6,7 +6,7 @@ on:
   pull_request:
     branches: [main]
   schedule:
-    - cron: '0 8 * * *'    # Runs daily at 08:00 UTC
+    - cron: '0 14 * * *'   # Runs daily at 14:00 UTC (16:00 CEST)
   workflow_dispatch:        # Allows manual run from GitHub Actions tab
 
 jobs:
