@@ -1,0 +1,428 @@
+# MeDirect SDET Assessment — Task 2, 3 & 4
+
+End-to-end test framework covering:
+- **Task 2** — API integration tests + optional unit tests for the [Restful Booker API](https://restful-booker.herokuapp.com/apidoc/index.html)
+- **Task 3** — UI automation tests for the [MeDirect Equities Search page](https://www.medirect.com.mt/invest/equities/search)
+- **Task 4** — CI/CD pipeline via GitHub Actions with daily scheduling and Allure report publishing
+
+Built with **Playwright + TypeScript**, **Jest** for unit tests, and **Allure** for rich test reporting.
+
+---
+
+## Tech Stack
+
+| Tool | Version | Purpose |
+|---|---|---|
+| [Node.js](https://nodejs.org/) | 18+ | Runtime |
+| [TypeScript](https://www.typescriptlang.org/) | 6.x | Strong typing, interfaces, OOP |
+| [Playwright](https://playwright.dev/) | 1.59+ | API + UI test runner |
+| [Jest](https://jestjs.io/) | 29.x | Unit test runner for the BookingClient wrapper |
+| [Allure](https://allurereport.org/) | 3.x | Visual reporting with epics, features, severity |
+| [allure-js-commons](https://www.npmjs.com/package/allure-js-commons) | 3.x | Allure metadata functions |
+| [rimraf](https://github.com/isaacs/rimraf) | 6.x | Cross-platform folder cleanup |
+
+---
+
+## Project Structure
+
+```
+restful-booker-tests/
+├── src/
+│   ├── api/
+│   │   ├── clients/
+│   │   │   ├── AuthHelper.ts           # Token acquisition and caching
+│   │   │   ├── BookingClient.ts        # HTTP wrapper — all API calls live here
+│   │   │   └── BookingFactory.ts       # Random test data generation
+│   │   ├── models/
+│   │   │   └── Booking.ts              # TypeScript interfaces for request/response shapes
+│   │   └── Tests/
+│   │       ├── auth.spec.ts            # Health check + auth token tests
+│   │       ├── booking.crud.spec.ts    # Full CRUD journey (Create → Read → Update → Delete)
+│   │       ├── booking.negative.spec.ts# Negative / error path tests
+│   │       └── bookingClient.unit.spec.ts # Unit tests for BookingClient using Jest + mocks
+│   ├── ui/
+│   │   ├── pages/
+│   │   │   ├── EquitiesSearchPage.ts   # Page object for the equities search page
+│   │   │   └── SecurityDetailPage.ts   # Page object for the security detail page
+│   │   └── Tests/
+│   │       ├── navigation.spec.ts      # Security type tab navigation tests
+│   │       ├── search.spec.ts          # Equity search functionality tests
+│   │       └── securityDetails.spec.ts # Restricted content visibility tests
+│   └── Common/
+│       ├── config.ts                   # Shared config — baseUrl, credentials (env-overridable)
+│       ├── testData.ts                 # API test data constants
+│       └── uiTestData.ts              # UI test data constants
+├── playwright.api.config.ts            # Playwright config for API tests
+├── playwright.ui.config.ts             # Playwright config for UI tests
+├── tsconfig.json
+├── package.json
+└── .gitignore
+```
+
+---
+
+## Prerequisites
+
+- **Node.js 18+** — [Download](https://nodejs.org/)
+- **Java 11+** — required by Allure CLI to generate and open reports
+
+### Installing Java
+
+**Windows:**
+1. Download the installer from [adoptium.net](https://adoptium.net/) (Eclipse Temurin — free, LTS)
+2. Run the installer and check **"Set JAVA_HOME variable"** and **"Add to PATH"** during setup
+3. Open a new terminal and verify:
+```bash
+java --version
+```
+You should see output like `openjdk 17.x.x` or similar.
+
+**Mac:**
+```bash
+brew install openjdk@17
+```
+
+**Linux:**
+```bash
+sudo apt-get install -y openjdk-17-jre
+```
+
+### Installing Allure CLI
+
+Allure is bundled as an npm package — no separate installer needed. It is installed automatically when you run `npm install`. Verify it works after installation:
+
+```bash
+npx allure --version
+```
+
+You should see a version number such as `2.40.0`. If you see an error, Java is not on your PATH — revisit the Java installation step above.
+
+---
+
+## Installation
+
+### 1 — Clone the repository
+
+```bash
+git clone <your-repo-url>
+cd restful-booker-tests
+```
+
+### 2 — Install dependencies
+
+```bash
+npm install
+```
+
+This installs Playwright, TypeScript, Allure, and all other dependencies listed in `package.json`.
+
+### 3 — Install Playwright browsers (required for UI tests)
+
+```bash
+npx playwright install chromium
+```
+
+### 4 — Verify the full setup
+
+Run all four checks before running tests:
+
+```bash
+node --version       # should be 18 or higher
+npm --version        # any recent version
+java --version       # should be 11 or higher
+npx allure --version # should show 2.x.x
+```
+
+---
+
+## Running Tests
+
+### API Tests (Task 2)
+
+```bash
+# Run all API tests
+npm run test:api
+
+# Run and open Allure report
+npm run test:api:allure
+```
+
+### UI Tests (Task 3)
+
+```bash
+# Run headless (default)
+npm run test:ui
+
+# Run in browser (visible)
+npm run test:ui:headed
+
+# Run and open Allure report
+npm run test:ui:allure
+```
+
+### Unit Tests — BookingClient (Task 2, optional)
+
+The `BookingClient` wrapper is covered by unit tests using **Jest** with mocked HTTP
+responses — no real network calls are made.
+
+```bash
+npm run test:unit
+```
+
+> **Note:** Unit tests run locally only. They are intentionally excluded from the CI
+> pipeline to keep the pipeline focused on integration and E2E tests against the live
+> environments. This is a deliberate SDET decision — unit tests validate the wrapper
+> logic in isolation; integration tests validate the real API behaviour.
+
+---
+
+## Reports
+
+### Playwright HTML Report
+
+Generated after every run at `playwright-report/index.html`.
+
+```bash
+npm run report:html
+```
+
+### Allure Report
+
+Richer report with epics, features, severity, and step-level details.
+
+```bash
+npm run report:allure
+```
+
+Or generate and open manually:
+
+```bash
+npx allure generate allure-results --clean -o allure-report
+npx allure open allure-report
+```
+
+The Allure report includes:
+- **Overview** — pass/fail summary
+- **Behaviours** — tests grouped by Epic → Feature → Story hierarchy
+- **Suites** — tests grouped by file
+- **Timeline** — execution timing
+- **Graphs** — severity and status breakdowns
+
+---
+
+## Environment Configuration
+
+Tests use sensible defaults and can be overridden via environment variables — no code changes needed.
+
+| Variable | Default | Description |
+|---|---|---|
+| `BASE_URL` | `https://restful-booker.herokuapp.com` | API base URL |
+| `BOOKER_USERNAME` | `admin` | API auth username |
+| `BOOKER_PASSWORD` | `password123` | API auth password |
+| `UI_BASE_URL` | `https://www.medirect.com.mt` | UI base URL |
+
+**Mac / Linux:**
+```bash
+BASE_URL=https://staging.example.com npm run test:api
+```
+
+**Windows (PowerShell):**
+```powershell
+$env:BASE_URL="https://staging.example.com"; npm run test:api
+```
+
+All values are centralised in `src/Common/config.ts` — no magic strings in tests or page objects.
+
+---
+
+## Available Scripts
+
+| Script | Description |
+|---|---|
+| `npm run test:api` | Run all API tests |
+| `npm run test:api:allure` | Run API tests + open Allure report |
+| `npm run test:unit` | Run BookingClient unit tests (Jest, local only) |
+| `npm run test:ui` | Run all UI tests (headless) |
+| `npm run test:ui:headed` | Run UI tests in visible browser |
+| `npm run test:ui:allure` | Run UI tests + open Allure report |
+| `npm run report:html` | Open Playwright HTML report |
+| `npm run report:allure` | Generate and open Allure report |
+| `npm run clean` | Delete all generated report and result folders |
+
+---
+
+## Test Coverage
+
+### API Tests — Restful Booker (Task 2)
+
+| File | Tests | What is covered |
+|---|---|---|
+| `auth.spec.ts` | 2 | Health check (ping), valid credentials return a token |
+| `booking.crud.spec.ts` | 7 | Create → Get → List → PUT → PATCH → Delete → Confirm deleted |
+| `booking.negative.spec.ts` | 3 | Non-existent ID (404), unauthorised delete (403), malformed payload (500) |
+
+The CRUD tests run in a single chained describe block using `beforeAll` to create one shared booking — mirroring the Postman collection runner approach from Task 1.
+
+### Unit Tests — BookingClient (Task 2, optional)
+
+| File | Tests | What is covered |
+|---|---|---|
+| `bookingClient.unit.spec.ts` | 5+ | BookingClient methods tested in isolation using Jest mocks — no real HTTP calls made |
+
+Unit tests mock the `APIRequestContext` to verify that `BookingClient` constructs requests
+correctly (correct URLs, headers, token injection) without hitting the live API.
+
+### UI Tests — MeDirect Equities (Task 3)
+
+| File | Tests | What is covered |
+|---|---|---|
+| `navigation.spec.ts` | 4 | Default equities tab load + row count; Funds, ETFs, Bonds tab navigation |
+| `search.spec.ts` | 3 | Search returns results; More Information navigates to detail page; non-existent search returns empty list |
+| `securityDetails.spec.ts` | 4 | Registration banner visible; Overview fields locked; Bottom CTA + sign-up text visible; Price locked behind lock icon |
+
+---
+
+## CI/CD Pipeline (Task 4)
+
+The test framework is fully integrated into a GitHub Actions pipeline defined in
+`.github/workflows/tests.yml`.
+
+### Pipeline Overview
+
+```
+Push / PR / Schedule / Manual
+           │
+     ┌─────┴──────┐
+     ▼            ▼
+ api-tests     ui-tests        ← Run in parallel
+     │            │
+     └─────┬──────┘
+           ▼
+   publish-allure              ← Publishes Allure report to GitHub Pages
+           │
+           ▼
+        notify                 ← Sends HTML email summary (schedule & failures)
+```
+
+### Triggers
+
+| Trigger | When |
+|---|---|
+| `push` | Every commit pushed to `main` |
+| `pull_request` | Every PR opened or updated against `main` |
+| `schedule` | Every day at **08:00 UTC** automatically |
+| `workflow_dispatch` | On-demand manual run from the GitHub Actions tab |
+
+### Jobs
+
+| Job | What it does |
+|---|---|
+| **API Integration Tests** | Runs all 12 API tests (auth, CRUD, negative) against the Restful Booker API |
+| **UI End-to-End Tests** | Runs all 11 UI tests (navigation, search, security details) against the MeDirect site |
+| **Publish Allure Report** | Downloads both Allure reports and deploys them to GitHub Pages |
+| **Email Test Summary** | Parses results JSON and sends an HTML email with pass/fail counts |
+
+> **Note — Unit tests are excluded from CI intentionally.** The `bookingClient.unit.spec.ts`
+> Jest unit tests run locally only (`npm run test:unit`). The CI pipeline is deliberately
+> kept focused on integration and E2E tests that validate real API and browser behaviour.
+> Unit tests validate the `BookingClient` wrapper in isolation and do not require a
+> pipeline environment to run.
+
+### Artifacts
+
+Every run uploads the following artifacts (retained for 30 days):
+
+- `api-playwright-html-report` — Playwright HTML report for API tests
+- `api-allure-report` — Allure report for API tests
+- `ui-playwright-html-report` — Playwright HTML report for UI tests
+- `ui-allure-report` — Allure report for UI tests
+- `ui-failure-screenshots` — Screenshots captured on UI test failure (7 days)
+
+### Live Test Reports
+
+The latest Allure reports are published automatically to GitHub Pages after every run:
+
+**[https://sankariravichandran96-qa.github.io/restful-booker-tests/](https://sankariravichandran96-qa.github.io/restful-booker-tests/)**
+
+| Report | Direct link |
+|---|---|
+| API Tests | [/api/index.html](https://sankariravichandran96-qa.github.io/restful-booker-tests/api/index.html) |
+| UI Tests | [/ui/index.html](https://sankariravichandran96-qa.github.io/restful-booker-tests/ui/index.html) |
+
+### Running the Pipeline Manually
+
+1. Go to the **Actions** tab in the GitHub repository
+2. Click **Restful Booker — API & UI Tests** in the left sidebar
+3. Click **Run workflow** → **Run workflow**
+4. All four jobs will execute and results will be available as artifacts within ~5 minutes
+
+### Email Notifications (Optional Setup)
+
+The `notify` job sends an HTML email report after every scheduled run and on any
+test failure. To enable it, add the following three secrets under
+**Settings → Secrets and variables → Actions**:
+
+| Secret | Description |
+|---|---|
+| `EMAIL_USERNAME` | Gmail address used to send the report |
+| `EMAIL_PASSWORD` | Gmail App Password (16-character code from myaccount.google.com → Security → App passwords) |
+| `EMAIL_RECIPIENT` | Email address that receives the daily report |
+
+---
+
+## Design Decisions
+
+| Decision | Reason |
+|---|---|
+| `BookingClient` wraps all HTTP calls | Tests never call `request.get/post` directly — clean separation of concerns |
+| `AuthHelper` caches the token per context | No repeated auth requests — efficient and mirrors real-world SDK patterns |
+| `BookingFactory` generates unique names via `Date.now()` | Guaranteed unique data on every run — matches Postman's random data strategy |
+| `beforeAll` creates one shared booking for CRUD tests | Tests chain on the same record — mirrors the Postman collection runner approach |
+| `afterAll` cleans up test data on every describe | No orphaned records left in the API between runs |
+| Page Object Model for all UI interactions | Locators and actions are defined once and reused — changes to the UI only require updates in one place |
+| `test.step()` wraps every assertion | Allure shows plain-English steps readable by non-technical stakeholders |
+| `test.describe.configure({ mode: 'serial' })` on UI suites | UI tests that navigate across steps must run in order |
+| `workers: 1` in API config | CRUD tests share booking state — parallel execution would cause race conditions |
+| Allure metadata via `allure-js-commons` | Uses the non-deprecated API — `epic()`, `feature()`, `story()`, `severity()` called as plain functions |
+| Separate `playwright.api.config.ts` and `playwright.ui.config.ts` | API and UI suites can be run independently with their own base URLs and browser settings |
+| All test data in `src/Common/` | Single source of truth — no magic values scattered across test files |
+
+---
+
+## Proposed Improvements
+
+These items were considered but deliberately kept out of scope to avoid over-engineering the assessment solution. They represent natural next steps for a production framework:
+
+- **Tag-based test selection** — Add `@smoke` and `@regression` tags to enable selective CI runs (e.g. `--grep @smoke` for a quick sanity check on every PR, full regression nightly). Tags were omitted here to keep the test signatures clean for readability.
+- **Search debounce handling** — `EquitiesSearchPage.searchFor()` uses `waitForTimeout(1500)` to account for the site's search debounce. A more robust approach would intercept the outgoing search request via `page.waitForResponse()` and resolve when the response arrives.
+- **Parameterised UI tests** — The four security type tabs (Equities, Funds, ETFs, Bonds) could be driven by a data table to reduce repetition.
+- **Visual regression testing** — Screenshot comparisons for the locked fields and banner UI using Playwright's built-in `toHaveScreenshot()`.
+- **Retry on flake** — Enable `retries: 2` in CI to auto-retry transient network failures against the live test environments.
+- **Parallel UI test execution** — Enable cross-browser runs (Chromium, Firefox, WebKit) in CI to catch browser-specific rendering differences earlier.
+
+---
+
+## Troubleshooting
+
+**`npx allure --version` gives an error**
+
+Allure CLI requires Java 8+. Install from [java.com](https://www.java.com/en/download/) and ensure `java` is on your PATH.
+
+**Tests fail with `Cannot find name 'process'`**
+
+Ensure `@types/node` is installed:
+```bash
+npm install --save-dev @types/node
+```
+
+**UI tests fail with timeout on search results**
+
+The MeDirect site applies a search debounce. If results don't load within the timeout, check your network connection — the page must be reachable at `https://www.medirect.com.mt`.
+
+**Allure report shows stale results from a previous run**
+
+Run `npm run clean` before re-running tests. All `*:allure` scripts do this automatically.
+
+**`Fixture { request } from beforeAll cannot be reused` error**
+
+The API tests use `playwrightRequest.newContext()` inside `beforeAll` instead of the `{ request }` fixture — this is intentional. Do not replace it with the fixture.
